@@ -1,70 +1,100 @@
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
+from rich.layout import Layout
 
 from modules.prices import get_price
+from modules.news import get_news
 
 console = Console()
 
 
-def print_asset(name, symbol):
+def asset_line(name, symbol):
     price, change = get_price(symbol)
 
     if price is None:
-        console.print(f"{name:<25} --", style="yellow")
-        return
+        return f"{name:<15} --"
 
     arrow = "▲" if change >= 0 else "▼"
-    color = "green" if change >= 0 else "red"
+    return f"{name:<15} {price:>10.2f} {arrow} {change:+.2f}%"
 
-    console.print(
-        f"{name:<25} {price:>10.2f}   [{color}]{arrow} {change:+.2f}%[/{color}]"
+
+def build_dashboard():
+
+    layout = Layout()
+
+    layout.split_column(
+        Layout(name="header", size=5),
+        Layout(name="body"),
+        Layout(name="footer", size=3),
     )
 
-
-def show_dashboard(_):
-
-    console.print()
+    layout["body"].split_row(
+        Layout(name="left"),
+        Layout(name="right"),
+    )
 
     # HEADER
-    console.print(
+    layout["header"].update(
         Panel.fit(
-            "[bold cyan]HORIAKTZ MARKET TERMINAL[/bold cyan]\n"
-            "[green]v0.2[/green]",
+            f"[bold cyan]HORIAKTZ MARKET TERMINAL[/bold cyan]\n"
+            f"[green]v0.4[/green]   [white]{datetime.now().strftime('%d.%m.%Y %H:%M:%S')}[/white]",
             border_style="cyan",
         )
     )
 
-    console.print(
-        f"[green]● ONLINE[/green]  {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}"
+    # LEFT (MARKET)
+    left = "\n".join([
+        "[bold cyan]MARKET[/bold cyan]",
+        "",
+        asset_line("S&P500", "^GSPC"),
+        asset_line("NASDAQ", "^IXIC"),
+        "",
+        "[bold green]ETF[/bold green]",
+        "",
+        asset_line("VWCE", "VWCE.DE"),
+        asset_line("IUSN", "IUSN.DE"),
+        asset_line("VVSM", "VVSM.DE"),
+        "",
+        "[bold yellow]BVB[/bold yellow]",
+        "",
+        "Hidroelectrica   --",
+        "OMV Petrom       --",
+        "Banca Transilvania --",
+    ])
+
+    layout["body"]["left"].update(
+        Panel(left, title="Markets", border_style="cyan")
     )
 
-    console.print()
+    # RIGHT (NEWS)
+    try:
+        news_items = get_news()
+    except:
+        news_items = []
 
-    # INDEXES
-    console.rule("[bold cyan]INDEXES")
+    news_text = "[bold magenta]NEWS[/bold magenta]\n\n"
 
-    print_asset("S&P 500", "^GSPC")
-    print_asset("NASDAQ", "^IXIC")
+    if news_items:
+        for n in news_items[:6]:
+            news_text += f"• {n}\n"
+    else:
+        news_text += "No news available"
 
-    console.print()
+    layout["body"]["right"].update(
+        Panel(news_text, title="Market News", border_style="magenta")
+    )
 
-    # ETF
-    console.rule("[bold green]ETF")
+    # FOOTER
+    layout["footer"].update(
+        Panel(
+            "[R] Refresh   [Q] Quit",
+            border_style="white",
+        )
+    )
 
-    print_asset("VWCE", "VWCE.DE")
-    print_asset("IUSN", "IUSN.DE")
-    print_asset("VVSM", "VVSM.DE")
+    return layout
 
-    console.print()
 
-    # BVB (temporar fără erori)
-    console.rule("[bold yellow]BVB")
-
-    print_asset("Hidroelectrica", "H2O.BX")
-    print_asset("OMV Petrom", "SNP.BX")
-    print_asset("Banca Transilvania", "TLV.BX")
-
-    console.print()
-
-    console.rule("[bold white]READY")
+def show_dashboard(_):
+    console.print(build_dashboard())
