@@ -1,30 +1,32 @@
-import json
 import os
-from rich.console import Console
-from rich.panel import Panel
-from rich import box
-
+import sys
+import time
 from modules.dashboard import show_dashboard
 
-console = Console()
 
-
-def load_config():
-    with open("config.json", "r", encoding="utf-8") as file:
-        return json.load(file)
+def clear():
+    os.system("cls" if os.name == "nt" else "clear")
 
 
 def main():
-    os.system("cls" if os.name == "nt" else "clear")
 
-    console.print(
-        Panel.fit(
-            "[bold cyan]HORIAKTZ MARKET TERMINAL[/bold cyan]\n[green]Version 0.1[/green]",
-            box=box.DOUBLE,
-        )
-    )
+    while True:
+        clear()
+        show_dashboard(None)
 
-    show_dashboard(None)
+        print("\n[R] Refresh   [Q] Quit   (Enter = refresh)")
+
+        # citim input fără să blocheze tot UI-ul
+        cmd = input("> ").strip().lower()
+
+        if cmd == "q":
+            clear()
+            print("Closing Horiaktz Market Terminal...")
+            time.sleep(0.5)
+            sys.exit()
+
+        # orice altceva = refresh
+        continue
 
 
 if __name__ == "__main__":

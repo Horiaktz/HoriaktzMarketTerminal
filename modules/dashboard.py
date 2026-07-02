@@ -1,7 +1,6 @@
+from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
-from rich.text import Text
-from datetime import datetime
 
 from modules.prices import get_price
 
@@ -9,7 +8,6 @@ console = Console()
 
 
 def print_asset(name, symbol):
-
     price, change = get_price(symbol)
 
     if price is None:
@@ -24,24 +22,26 @@ def print_asset(name, symbol):
     )
 
 
-def show_dashboard(config):
+def show_dashboard(_):
 
     console.print()
 
+    # HEADER
     console.print(
         Panel.fit(
-            Text(
-                "HORIAKTZ MARKET TERMINAL",
-                justify="center",
-                style="bold cyan",
-            ),
+            "[bold cyan]HORIAKTZ MARKET TERMINAL[/bold cyan]\n"
+            "[green]v0.2[/green]",
             border_style="cyan",
         )
     )
 
-    console.print(f"[green]● ONLINE[/green]    {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}")
+    console.print(
+        f"[green]● ONLINE[/green]  {datetime.now().strftime('%d.%m.%Y %H:%M:%S')}"
+    )
+
     console.print()
 
+    # INDEXES
     console.rule("[bold cyan]INDEXES")
 
     print_asset("S&P 500", "^GSPC")
@@ -49,6 +49,7 @@ def show_dashboard(config):
 
     console.print()
 
+    # ETF
     console.rule("[bold green]ETF")
 
     print_asset("VWCE", "VWCE.DE")
@@ -57,10 +58,13 @@ def show_dashboard(config):
 
     console.print()
 
+    # BVB (temporar fără erori)
     console.rule("[bold yellow]BVB")
 
-    console.print("Hidroelectrica            Coming Soon", style="yellow")
-    console.print("OMV Petrom                Coming Soon", style="yellow")
-    console.print("Banca Transilvania        Coming Soon", style="yellow")
+    print_asset("Hidroelectrica", "H2O.BX")
+    print_asset("OMV Petrom", "SNP.BX")
+    print_asset("Banca Transilvania", "TLV.BX")
 
     console.print()
+
+    console.rule("[bold white]READY")
