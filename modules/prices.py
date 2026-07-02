@@ -1,28 +1,29 @@
 import yfinance as yf
-import contextlib
-import io
 
 
-def get_price(symbol):
+# fallback safe (evită spam / erori)
+INVALID = {"H2O", "SNP", "TLV"}
+
+
+def get_price(symbol: str):
+
+    if symbol in INVALID:
+        return None, None
+
     try:
-        f = io.StringIO()
+        ticker = yf.Ticker(symbol)
 
-        with contextlib.redirect_stdout(f), contextlib.redirect_stderr(f):
-            ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="5d")
 
-            info = ticker.fast_info
-            price = info["lastPrice"]
-
-            hist = ticker.history(period="2d")
-
-        if len(hist) < 2:
+        if hist is None or len(hist) < 2:
             return None, None
 
-        previous = hist["Close"].iloc[-2]
+        price = float(hist["Close"].iloc[-1])
+        prev = float(hist["Close"].iloc[-2])
 
-        change = ((price - previous) / previous) * 100
+        change = ((price - prev) / prev) * 100 if prev else 0
 
-        return round(price, 2), round(change, 2)
+        return price, change
 
     except:
         return None, None
