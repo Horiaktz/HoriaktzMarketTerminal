@@ -1,0 +1,16 @@
+{
+  "indexes": {
+    "S&P 500": "^GSPC",
+    "NASDAQ": "^IXIC"
+  },
+  "etf": {
+    "VWCE": "VWCE.DE",
+    "IUSN": "IUSN.DE",
+    "VVSM": "VVSM.DE"
+  },
+  "bvb": {
+    "Hidroelectrica": "H2O",
+    "OMV Petrom": "SNP",
+    "Banca Transilvania": "TLV"
+  }
+}
