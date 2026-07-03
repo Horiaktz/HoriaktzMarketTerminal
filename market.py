@@ -108,7 +108,7 @@ def main():
                         print(chart_mgr.draw_ascii_chart(ticker, days=25))
                 print(f"\n{dashboard.CYAN}Apasă ENTER pentru a te întoarce la dashboard...{dashboard.RESET}")
                 input()
-                trigger_render(dashboard)
+                refresh_and_render(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converter, dashboard)
             elif cmd == 'p':
                 in_p_menu = True
                 while in_p_menu:
@@ -116,11 +116,12 @@ def main():
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}══💼 MENIU MANAGE PORTFOLIO ════════════════════════════════════════════════════{dashboard.RESET}")
                     print(f" 1. {dashboard.CYAN}Vizualizează Alocarea Activelor{dashboard.RESET} (Grafic ASCII pe ponderi)")
                     print(f" 2. {dashboard.CYAN}Adaugă Activ Nou{dashboard.RESET} (XTB sau Tradeville/BVB)")
-                    print(f" 3. {dashboard.CYAN}Modifică / Actualizează Activ Existent{dashboard.RESET}")
-                    print(f" 4. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
-                    print(f" 5. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
+                    print(f" 3. {dashboard.CYAN}Modifică / Actualizează Complet un Activ{dashboard.RESET}")
+                    print(f" 4. {dashboard.YELLOW}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
+                    print(f" 5. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
+                    print(f" 6. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}════════════════════════════════════════════════════════════════════════════════{dashboard.RESET}")
-                    sys.stdout.write(f"\n Selectează o opțiune (1-5): ")
+                    sys.stdout.write(f"\n Selectează o opțiune (1-6): ")
                     sys.stdout.flush()
                     
                     p_opt = input().strip()
@@ -144,7 +145,6 @@ def main():
                         try:
                             qty = float(input(" Cantitate (Qty): "))
                             avg_price = float(input(" Preț Mediu de Cumpărare: "))
-                            
                             current_price = 0.0
                             currency = "USD"
                             is_bond = False
@@ -171,7 +171,6 @@ def main():
                         ticker = input(" Introdu ticker-ul pe care vrei să îl modifici: ").strip().upper()
                         if not ticker: continue
                         
-                        # Verificăm unde se află activul
                         is_manual = False
                         asset_info = None
                         
@@ -211,6 +210,36 @@ def main():
                         
                     elif p_opt == '4':
                         dashboard.clear_screen()
+                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══⚡ ACTUALIZARE RAPIDĂ PREȚURI BVB ════════════════════════════════════════════{dashboard.RESET}")
+                        if not portfolio_mgr.manual_assets:
+                            print(f"\n{dashboard.RED} Nu ai active manuale (BVB) în portofoliu!{dashboard.RESET}")
+                            time.sleep(2)
+                            continue
+                        
+                        print(" Activele tale de pe BVB:")
+                        for t, info in portfolio_mgr.manual_assets.items():
+                            print(f"  • {dashboard.BOLD}{t:<8}{dashboard.RESET} -> Preț curent salvat: {info['current_price']} {info['currency']}")
+                        
+                        ticker_bvb = input("\n Introdu ticker-ul pe care vrei să-l actualizezi (ex: SNP): ").strip().upper()
+                        if ticker_bvb in portfolio_mgr.manual_assets:
+                            info = portfolio_mgr.manual_assets[ticker_bvb]
+                            new_p_input = input(f" Introdu noul preț curent pentru {ticker_bvb} (Curent: {info['current_price']}): ").strip()
+                            if new_p_input:
+                                try:
+                                    portfolio_mgr.add_or_update_asset(
+                                        ticker_bvb, info['qty'], info['avg_price'], True, 
+                                        float(new_p_input), info['currency'], info.get('is_bond', False)
+                                    )
+                                    print(f"\n{dashboard.GREEN} Prețul pentru {ticker_bvb} a fost actualizat la {new_p_input} RON!{dashboard.RESET}")
+                                except ValueError:
+                                    print(f"\n{dashboard.RED} Eroare: Preț invalid!{dashboard.RESET}")
+                        else:
+                            if ticker_bvb:
+                                print(f"\n{dashboard.RED} Ticker-ul introdus nu este un activ manual de pe BVB!{dashboard.RESET}")
+                        time.sleep(2)
+
+                    elif p_opt == '5':
+                        dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══❌ ȘTERGERE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")
                         ticker = input(" Introdu ticker-ul pe care vrei să îl ștergi definitiv: ").strip().upper()
                         if ticker:
@@ -223,10 +252,9 @@ def main():
                             else:
                                 print("\n Operațiune anulată.")
                         time.sleep(2)
-                    elif p_opt == '5' or p_opt == '':
+                    elif p_opt == '6' or p_opt == '':
                         in_p_menu = False
                 
-                # Sincronizare imediată după ieșirea din meniu
                 with data_lock:
                     portfolio_data = portfolio_mgr.get_portfolio_data()
                 trigger_render(dashboard)
