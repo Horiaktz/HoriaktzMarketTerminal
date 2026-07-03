@@ -18,32 +18,62 @@
     },
     "manual_assets": {
         "BNET23A": {
-            "qty": 50,
+            "qty": 50.0,
             "avg_price": 99.6384,
-            "current_price": 100.18,
+            "current_price": 99.87,
             "currency": "RON",
-            "is_bond": true
+            "is_bond": true,
+            "history_matrix": {
+                "2027": {
+                    "qty": 50.0,
+                    "cash": 11.56
+                }
+            }
         },
         "H2O": {
             "qty": 8.0,
             "avg_price": 163.3279,
             "current_price": 217.0,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 6.1726266,
+            "history_matrix": {
+                "2026": {
+                    "qty": 6.0,
+                    "cash": 6.1726266
+                }
+            }
         },
         "SNP": {
-            "qty": 1152,
+            "qty": 1152.0,
             "avg_price": 1.0199,
-            "current_price": 1.091,
+            "current_price": 1.089,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 0.048552,
+            "dps_history": {
+                "2026": 0.0486
+            },
+            "history_matrix": {
+                "2026": {
+                    "qty": 1000.0,
+                    "cash": 0.048552
+                }
+            }
         },
         "TLV": {
-            "qty": 35,
+            "qty": 35.0,
             "avg_price": 38.2919,
-            "current_price": 39.78,
+            "current_price": 39.64,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 1.078580234,
+            "history_matrix": {
+                "2026": {
+                    "qty": 34.0,
+                    "cash": 1.078580234
+                }
+            }
         }
     }
 }

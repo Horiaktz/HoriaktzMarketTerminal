@@ -108,7 +108,7 @@ def main():
                         print(chart_mgr.draw_ascii_chart(ticker, days=25))
                 print(f"\n{dashboard.CYAN}Apasă ENTER pentru a te întoarce la dashboard...{dashboard.RESET}")
                 input()
-                refresh_and_render(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converter, dashboard)
+                trigger_render(dashboard)
             elif cmd == 'p':
                 in_p_menu = True
                 while in_p_menu:
@@ -117,11 +117,12 @@ def main():
                     print(f" 1. {dashboard.CYAN}Vizualizează Alocarea Activelor{dashboard.RESET} (Grafic ASCII pe ponderi)")
                     print(f" 2. {dashboard.CYAN}Adaugă Activ Nou{dashboard.RESET} (XTB sau Tradeville/BVB)")
                     print(f" 3. {dashboard.CYAN}Modifică / Actualizează Complet un Activ{dashboard.RESET}")
-                    print(f" 4. {dashboard.YELLOW}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
-                    print(f" 5. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
-                    print(f" 6. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
+                    print(f" 4. {dashboard.CYAN}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
+                    print(f" 5. {dashboard.MAGENTA}Raport Istoric Dividende & Cupoane BVB{dashboard.RESET} 📅 💰")
+                    print(f" 6. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
+                    print(f" 7. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}════════════════════════════════════════════════════════════════════════════════{dashboard.RESET}")
-                    sys.stdout.write(f"\n Selectează o opțiune (1-6): ")
+                    sys.stdout.write(f"\n Selectează o opțiune (1-7): ")
                     sys.stdout.flush()
                     
                     p_opt = input().strip()
@@ -136,7 +137,7 @@ def main():
                     elif p_opt == '2':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══➕ ADĂUGARE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")
-                        ticker = input(" Introdu Ticker (ex: SNP, TLV, AAPL, VWCE.DE): ").strip().upper()
+                        ticker = input(" Introdu Ticker (ex: SNP, TLV, BNET, VWCE.DE): ").strip().upper()
                         if not ticker: continue
                         
                         tip = input(" Este activ manual (BVB/Tradeville)? (y/n): ").strip().lower()
@@ -153,7 +154,7 @@ def main():
                                 current_price = float(input(" Preț Curent de Piață: "))
                                 currency = input(" Monedă (RON/EUR/USD) [implicit RON]: ").strip().upper()
                                 if not currency: currency = "RON"
-                                obligațiune = input(" Este obligațiune/titlu de stat? (y/n): ").strip().lower()
+                                obligațiune = input(" Este obligațiune/titlu de stat (ex: BNET)? (y/n): ").strip().lower()
                                 is_bond = (obligațiune == 'y')
                             else:
                                 currency = input(" Monedă (EUR/USD) [implicit EUR]: ").strip().upper()
@@ -235,10 +236,89 @@ def main():
                                     print(f"\n{dashboard.RED} Eroare: Preț invalid!{dashboard.RESET}")
                         else:
                             if ticker_bvb:
-                                print(f"\n{dashboard.RED} Ticker-ul introdus nu este un activ manual de pe BVB!{dashboard.RESET}")
+                                print(f"\n{dashboard.RED} Ticker-ul introdus nu este un active manual de pe BVB!{dashboard.RESET}")
                         time.sleep(2)
 
                     elif p_opt == '5':
+                        dashboard.clear_screen()
+                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══📅 SELECTARE COMPARTIMENT AN BAZĂ DE DATE ═════════════════════════════════════{dashboard.RESET}")
+                        print(" 1. Vizualizează/Editează istoric [ Anul 2026 ] (Încasat deja)")
+                        print(" 2. Vizualizează/Editează planificări [ Anul 2027 ] (În pregătire 🚀)")
+                        an_selectat = input("\n Selectează anul dorit (1 sau 2): ").strip()
+                        
+                        an_str = "2027" if an_selectat == '2' else "2026"
+                        
+                        dashboard.clear_screen()
+                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══💰 RAPORT CASHFLOW BVB - ANUL {an_str} ═══════════════════════════════════════════{dashboard.RESET}")
+                        if not portfolio_mgr.manual_assets:
+                            print(f"\n{dashboard.RED} Nu ai active pe BVB adăugate în portofoliu!{dashboard.RESET}")
+                            input("\nApasă ENTER pentru înapoi...")
+                            continue
+                        
+                        print(f"  {dashboard.BOLD}{dashboard.WHITE}{'TICKER':<10}{'TIP':<12}{'HIST. QTY':<12}{'CASH/UNIT':<15}{'TOTAL ÎNCASAT'}{dashboard.RESET}")
+                        print(f"  {'-'*70}")
+                        
+                        total_an_ron = 0.0
+                        for t, info in portfolio_mgr.manual_assets.items():
+                            is_bond = info.get('is_bond', False)
+                            tip_text = "Obligațiune" if is_bond else "Acțiune"
+                            
+                            # Structura nouă: "history_matrix": {"2026": {"qty": 1000, "cash": 0.045}}
+                            matrix = info.get('history_matrix', {})
+                            year_data = matrix.get(an_str, {})
+                            
+                            # Dacă nu există date istorice salvate, facem fallback inteligent pe valorile curente
+                            hist_qty = year_data.get('qty', info['qty'])
+                            cash_per_unit = year_data.get('cash', info.get('dps', 0.0) if an_str == "2026" else 0.0)
+                            
+                            total_asset_cash = hist_qty * cash_per_unit
+                            total_an_ron += total_asset_cash
+                            
+                            print(f"  {dashboard.BOLD}{t:<10}{dashboard.RESET}{tip_text:<12}{hist_qty:<12,g}{cash_per_unit:<15,.4f}{total_asset_cash:,.2f} RON")
+                        
+                        print(f"  {'-'*70}")
+                        print(f"  {dashboard.BOLD}TOTAL CASHFLOW ÎNCASAT/ESTIMAT ÎN {an_str}: {dashboard.GREEN}{total_an_ron:,.2f} RON{dashboard.RESET}")
+                        
+                        print(f"\n{dashboard.YELLOW} Vrei să editezi datele istorice (Cantitate & Dividend) pentru {an_str}?{dashboard.RESET}")
+                        edit_t = input(" Introdu ticker-ul (sau apăsă ENTER pentru înapoi): ").strip().upper()
+                        if edit_t in portfolio_mgr.manual_assets:
+                            info = portfolio_mgr.manual_assets[edit_t]
+                            if 'history_matrix' not in info:
+                                portfolio_mgr.manual_assets[edit_t]['history_matrix'] = {}
+                            if an_str not in portfolio_mgr.manual_assets[edit_t]['history_matrix']:
+                                portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
+                                    "qty": info['qty'],
+                                    "cash": info.get('dps', 0.0)
+                                }
+                                
+                            current_matrix_data = portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str]
+                            
+                            try:
+                                # 1. Cerem noua cantitate istorică
+                                input_qty = input(f" Cantitate deținută în {an_str} [ENTER pentru neschimbat: {current_matrix_data['qty']}]: ").strip()
+                                new_qty = float(input_qty) if input_qty else current_matrix_data['qty']
+                                
+                                # 2. Cerem noul dividend/cupon istoric
+                                tip_prompt = "cupon per obligațiune" if info.get('is_bond', False) else "dividend net per acțiune (DPS)"
+                                input_cash = input(f" Valoare {tip_prompt} în {an_str} [ENTER pentru neschimbat: {current_matrix_data['cash']}]: ").strip()
+                                new_cash = float(input_cash) if input_cash else current_matrix_data['cash']
+                                
+                                # Salvăm ambele valori în matricea istorică a activului
+                                portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
+                                    "qty": new_qty,
+                                    "cash": new_cash
+                                }
+                                portfolio_mgr.save_portfolio()
+                                print(f"\n{dashboard.GREEN} Succes! Datele istorice pentru {edit_t} ({an_str}) au fost actualizate!{dashboard.RESET}")
+                                time.sleep(1.5)
+                            except ValueError:
+                                print(f"\n{dashboard.RED} Eroare: Introdu doar valori numerice valide!{dashboard.RESET}")
+                                time.sleep(1.5)
+                        elif edit_t:
+                            print(f"\n{dashboard.RED} Ticker-ul nu există!{dashboard.RESET}")
+                            time.sleep(1.5)
+
+                    elif p_opt == '6':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══❌ ȘTERGERE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")
                         ticker = input(" Introdu ticker-ul pe care vrei să îl ștergi definitiv: ").strip().upper()
@@ -252,7 +332,7 @@ def main():
                             else:
                                 print("\n Operațiune anulată.")
                         time.sleep(2)
-                    elif p_opt == '6' or p_opt == '':
+                    elif p_opt == '7' or p_opt == '':
                         in_p_menu = False
                 
                 with data_lock:
