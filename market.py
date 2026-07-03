@@ -16,9 +16,10 @@ news_data = {}
 portfolio_data = []
 currency_rates = {'USD_RON': 4.57, 'EUR_RON': 5.23}
 running = True
+is_in_sub_menu = False  # Variabilă nouă care blochează redesenarea automată a ecranului principal
 
 def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converter, dashboard):
-    global indices_data, movers_data, news_data, portfolio_data, currency_rates, running
+    global indices_data, movers_data, news_data, portfolio_data, currency_rates, running, is_in_sub_menu
     
     while running:
         try:
@@ -35,7 +36,9 @@ def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converte
                 portfolio_data = p_data
                 currency_rates = rates
             
-            trigger_render(dashboard)
+            # Redesenăm doar dacă NU suntem în mijlocul unei acțiuni de editare
+            if not is_in_sub_menu:
+                trigger_render(dashboard)
             
         except Exception:
             pass
@@ -59,7 +62,7 @@ def trigger_render(dashboard):
             sys.stdout.flush()
 
 def main():
-    global running, indices_data, movers_data, news_data, portfolio_data, currency_rates
+    global running, indices_data, movers_data, news_data, portfolio_data, currency_rates, is_in_sub_menu
     
     indices_mgr = IndicesManager()
     movers_mgr = MoversManager()
@@ -97,6 +100,7 @@ def main():
                 currency_rates = converter.get_rates()
                 trigger_render(dashboard)
             elif cmd == 'g':
+                is_in_sub_menu = True  # Blocăm refresh-ul în grafice
                 sys.stdout.write(f"\n Introdu tickerele separate prin virgulă (ex: AAPL, TSLA, BTC-USD): ")
                 sys.stdout.flush()
                 tickers_input = input().strip()
@@ -108,9 +112,11 @@ def main():
                         print(chart_mgr.draw_ascii_chart(ticker, days=25))
                 print(f"\n{dashboard.CYAN}Apasă ENTER pentru a te întoarce la dashboard...{dashboard.RESET}")
                 input()
+                is_in_sub_menu = False
                 trigger_render(dashboard)
             elif cmd == 'p':
                 in_p_menu = True
+                is_in_sub_menu = True  # IMPORTANT: Blocăm refresh-ul când intrăm în Portofoliu
                 while in_p_menu:
                     dashboard.clear_screen()
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}══💼 MENIU MANAGE PORTFOLIO ════════════════════════════════════════════════════{dashboard.RESET}")
@@ -263,11 +269,9 @@ def main():
                             is_bond = info.get('is_bond', False)
                             tip_text = "Obligațiune" if is_bond else "Acțiune"
                             
-                            # Structura nouă: "history_matrix": {"2026": {"qty": 1000, "cash": 0.045}}
                             matrix = info.get('history_matrix', {})
                             year_data = matrix.get(an_str, {})
                             
-                            # Dacă nu există date istorice salvate, facem fallback inteligent pe valorile curente
                             hist_qty = year_data.get('qty', info['qty'])
                             cash_per_unit = year_data.get('cash', info.get('dps', 0.0) if an_str == "2026" else 0.0)
                             
@@ -294,16 +298,13 @@ def main():
                             current_matrix_data = portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str]
                             
                             try:
-                                # 1. Cerem noua cantitate istorică
                                 input_qty = input(f" Cantitate deținută în {an_str} [ENTER pentru neschimbat: {current_matrix_data['qty']}]: ").strip()
                                 new_qty = float(input_qty) if input_qty else current_matrix_data['qty']
                                 
-                                # 2. Cerem noul dividend/cupon istoric
                                 tip_prompt = "cupon per obligațiune" if info.get('is_bond', False) else "dividend net per acțiune (DPS)"
                                 input_cash = input(f" Valoare {tip_prompt} în {an_str} [ENTER pentru neschimbat: {current_matrix_data['cash']}]: ").strip()
                                 new_cash = float(input_cash) if input_cash else current_matrix_data['cash']
                                 
-                                # Salvăm ambele valori în matricea istorică a activului
                                 portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
                                     "qty": new_qty,
                                     "cash": new_cash
@@ -335,6 +336,8 @@ def main():
                     elif p_opt == '7' or p_opt == '':
                         in_p_menu = False
                 
+                # Ieșim din meniul P -> Activăm din nou redesenarea automată a ecranului principal
+                is_in_sub_menu = False
                 with data_lock:
                     portfolio_data = portfolio_mgr.get_portfolio_data()
                 trigger_render(dashboard)
