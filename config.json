@@ -1,16 +1,13 @@
 {
-  "indexes": {
-    "S&P 500": "^GSPC",
-    "NASDAQ": "^IXIC"
-  },
-  "etf": {
-    "VWCE": "VWCE.DE",
-    "IUSN": "IUSN.DE",
-    "VVSM": "VVSM.DE"
-  },
-  "bvb": {
-    "Hidroelectrica": "H2O",
-    "OMV Petrom": "SNP",
-    "Banca Transilvania": "TLV"
-  }
+    "auto_assets": {
+        "VWCE.DE": {"qty": 1.7631, "avg_price": 157.27, "currency": "EUR"},
+        "IUSN.DE": {"qty": 8.9552, "avg_price": 8.6294, "currency": "EUR"},
+        "VVSM.DE": {"qty": 0.484, "avg_price": 92.05, "currency": "EUR"}
+    },
+    "manual_assets": {
+        "BNET23A": {"qty": 50, "avg_price": 99.6384, "current_price": 100.18, "currency": "RON", "is_bond": true},
+        "H2O": {"qty": 8, "avg_price": 163.3279, "current_price": 209.00, "currency": "RON", "is_bond": false},
+        "SNP": {"qty": 1152, "avg_price": 1.0199, "current_price": 1.0910, "currency": "RON", "is_bond": false},
+        "TLV": {"qty": 35, "avg_price": 38.2919, "current_price": 39.78, "currency": "RON", "is_bond": false}
+    }
 }

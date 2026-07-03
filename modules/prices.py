@@ -1,29 +1,25 @@
 import yfinance as yf
 
+class PricesManager:
+    def __init__(self):
+        pass
 
-# fallback safe (evită spam / erori)
-INVALID = {"H2O", "SNP", "TLV"}
+    def get_live_price(self, ticker):
+        """Returnează prețul live, cu timeout strict pentru a preveni blocarea."""
+        try:
+            t = yf.Ticker(ticker)
+            # Folosim un timeout scurt în istoric
+            hist = t.history(period="1d", timeout=3)
+            if not hist.empty:
+                return round(hist['Close'].iloc[-1], 2)
+            return None
+        except Exception:
+            return None
 
-
-def get_price(symbol: str):
-
-    if symbol in INVALID:
-        return None, None
-
-    try:
-        ticker = yf.Ticker(symbol)
-
-        hist = ticker.history(period="5d")
-
-        if hist is None or len(hist) < 2:
-            return None, None
-
-        price = float(hist["Close"].iloc[-1])
-        prev = float(hist["Close"].iloc[-2])
-
-        change = ((price - prev) / prev) * 100 if prev else 0
-
-        return price, change
-
-    except:
-        return None, None
+    def get_multiple_prices(self, tickers_list):
+        prices = {}
+        for ticker in tickers_list:
+            price = self.get_live_price(ticker)
+            if price is not None:
+                prices[ticker] = price
+        return prices
