@@ -33,47 +33,23 @@
         "H2O": {
             "qty": 8.0,
             "avg_price": 163.3279,
-            "current_price": 217.0,
+            "current_price": 220.0,
             "currency": "RON",
-            "is_bond": false,
-            "dps": 6.1726266,
-            "history_matrix": {
-                "2026": {
-                    "qty": 6.0,
-                    "cash": 6.1726266
-                }
-            }
+            "is_bond": false
         },
         "SNP": {
             "qty": 1152.0,
             "avg_price": 1.0199,
-            "current_price": 1.089,
+            "current_price": 1.09,
             "currency": "RON",
-            "is_bond": false,
-            "dps": 0.048552,
-            "dps_history": {
-                "2026": 0.0486
-            },
-            "history_matrix": {
-                "2026": {
-                    "qty": 1000.0,
-                    "cash": 0.048552
-                }
-            }
+            "is_bond": false
         },
         "TLV": {
             "qty": 35.0,
             "avg_price": 38.2919,
-            "current_price": 39.64,
+            "current_price": 39.54,
             "currency": "RON",
-            "is_bond": false,
-            "dps": 1.078580234,
-            "history_matrix": {
-                "2026": {
-                    "qty": 34.0,
-                    "cash": 1.078580234
-                }
-            }
+            "is_bond": false
         }
     }
 }
