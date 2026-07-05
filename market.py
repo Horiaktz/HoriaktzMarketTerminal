@@ -16,7 +16,7 @@ news_data = {}
 portfolio_data = []
 currency_rates = {'USD_RON': 4.57, 'EUR_RON': 5.23}
 running = True
-is_in_sub_menu = False  # Variabilă nouă care blochează redesenarea automată a ecranului principal
+is_in_sub_menu = False
 
 def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converter, dashboard):
     global indices_data, movers_data, news_data, portfolio_data, currency_rates, running, is_in_sub_menu
@@ -36,7 +36,6 @@ def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converte
                 portfolio_data = p_data
                 currency_rates = rates
             
-            # Redesenăm doar dacă NU suntem în mijlocul unei acțiuni de editare
             if not is_in_sub_menu:
                 trigger_render(dashboard)
             
@@ -60,6 +59,22 @@ def trigger_render(dashboard):
             print(f"{dashboard.BOLD}{dashboard.CYAN}================================================================================{dashboard.RESET}")
             sys.stdout.write(f"\n {dashboard.BOLD}Action:{dashboard.RESET} ")
             sys.stdout.flush()
+
+def get_default_months(ticker, is_bond):
+    """Returnează lunile în care încasezi bani în mod tradițional bazat pe ticker"""
+    t = ticker.upper()
+    if is_bond:
+        # Obligațiunile de tip BNET plătesc de regulă cupoane trimestriale sau semestriale
+        if "BNET" in t:
+            return ["Martie", "Iunie", "Septembrie", "Decembrie"]
+        return ["Iunie", "Decembrie"]
+    else:
+        # Acțiunile mari de pe BVB au distribuit istoric dividendele în lunile de vară
+        if "SNP" in t:
+            return ["Iunie"]
+        if "TLV" in t:
+            return ["Mai"]
+        return ["Iunie"]
 
 def main():
     global running, indices_data, movers_data, news_data, portfolio_data, currency_rates, is_in_sub_menu
@@ -100,7 +115,7 @@ def main():
                 currency_rates = converter.get_rates()
                 trigger_render(dashboard)
             elif cmd == 'g':
-                is_in_sub_menu = True  # Blocăm refresh-ul în grafice
+                is_in_sub_menu = True
                 sys.stdout.write(f"\n Introdu tickerele separate prin virgulă (ex: AAPL, TSLA, BTC-USD): ")
                 sys.stdout.flush()
                 tickers_input = input().strip()
@@ -116,7 +131,7 @@ def main():
                 trigger_render(dashboard)
             elif cmd == 'p':
                 in_p_menu = True
-                is_in_sub_menu = True  # IMPORTANT: Blocăm refresh-ul când intrăm în Portofoliu
+                is_in_sub_menu = True
                 while in_p_menu:
                     dashboard.clear_screen()
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}══💼 MENIU MANAGE PORTFOLIO ════════════════════════════════════════════════════{dashboard.RESET}")
@@ -246,78 +261,120 @@ def main():
                         time.sleep(2)
 
                     elif p_opt == '5':
-                        dashboard.clear_screen()
-                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══📅 SELECTARE COMPARTIMENT AN BAZĂ DE DATE ═════════════════════════════════════{dashboard.RESET}")
-                        print(" 1. Vizualizează/Editează istoric [ Anul 2026 ] (Încasat deja)")
-                        print(" 2. Vizualizează/Editează planificări [ Anul 2027 ] (În pregătire 🚀)")
-                        an_selectat = input("\n Selectează anul dorit (1 sau 2): ").strip()
-                        
-                        an_str = "2027" if an_selectat == '2' else "2026"
-                        
-                        dashboard.clear_screen()
-                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══💰 RAPORT CASHFLOW BVB - ANUL {an_str} ═══════════════════════════════════════════{dashboard.RESET}")
-                        if not portfolio_mgr.manual_assets:
-                            print(f"\n{dashboard.RED} Nu ai active pe BVB adăugate în portofoliu!{dashboard.RESET}")
-                            input("\nApasă ENTER pentru înapoi...")
-                            continue
-                        
-                        print(f"  {dashboard.BOLD}{dashboard.WHITE}{'TICKER':<10}{'TIP':<12}{'HIST. QTY':<12}{'CASH/UNIT':<15}{'TOTAL ÎNCASAT'}{dashboard.RESET}")
-                        print(f"  {'-'*70}")
-                        
-                        total_an_ron = 0.0
-                        for t, info in portfolio_mgr.manual_assets.items():
-                            is_bond = info.get('is_bond', False)
-                            tip_text = "Obligațiune" if is_bond else "Acțiune"
+                        in_sub_loop = True
+                        while in_sub_loop:
+                            dashboard.clear_screen()
+                            print(f"{dashboard.BOLD}{dashboard.YELLOW}══📅 SELECTARE COMPARTIMENT AN BAZĂ DE DATE ═════════════════════════════════════{dashboard.RESET}")
+                            print(" 1. Vizualizează/Editează istoric [ Anul 2026 ] (Încasat deja)")
+                            print(" 2. Vizualizează/Editează planificări [ Anul 2027 ] (În pregătire 🚀)")
+                            print(" 3. Înapoi la meniul principal")
+                            an_selectat = input("\n Selectează opțiunea (1-3): ").strip()
                             
-                            matrix = info.get('history_matrix', {})
-                            year_data = matrix.get(an_str, {})
-                            
-                            hist_qty = year_data.get('qty', info['qty'])
-                            cash_per_unit = year_data.get('cash', info.get('dps', 0.0) if an_str == "2026" else 0.0)
-                            
-                            total_asset_cash = hist_qty * cash_per_unit
-                            total_an_ron += total_asset_cash
-                            
-                            print(f"  {dashboard.BOLD}{t:<10}{dashboard.RESET}{tip_text:<12}{hist_qty:<12,g}{cash_per_unit:<15,.4f}{total_asset_cash:,.2f} RON")
-                        
-                        print(f"  {'-'*70}")
-                        print(f"  {dashboard.BOLD}TOTAL CASHFLOW ÎNCASAT/ESTIMAT ÎN {an_str}: {dashboard.GREEN}{total_an_ron:,.2f} RON{dashboard.RESET}")
-                        
-                        print(f"\n{dashboard.YELLOW} Vrei să editezi datele istorice (Cantitate & Dividend) pentru {an_str}?{dashboard.RESET}")
-                        edit_t = input(" Introdu ticker-ul (sau apăsă ENTER pentru înapoi): ").strip().upper()
-                        if edit_t in portfolio_mgr.manual_assets:
-                            info = portfolio_mgr.manual_assets[edit_t]
-                            if 'history_matrix' not in info:
-                                portfolio_mgr.manual_assets[edit_t]['history_matrix'] = {}
-                            if an_str not in portfolio_mgr.manual_assets[edit_t]['history_matrix']:
-                                portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
-                                    "qty": info['qty'],
-                                    "cash": info.get('dps', 0.0)
-                                }
+                            if an_selectat == '3':
+                                in_sub_loop = False
+                                continue
                                 
-                            current_matrix_data = portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str]
+                            an_str = "2027" if an_selectat == '2' else "2026"
                             
-                            try:
-                                input_qty = input(f" Cantitate deținută în {an_str} [ENTER pentru neschimbat: {current_matrix_data['qty']}]: ").strip()
-                                new_qty = float(input_qty) if input_qty else current_matrix_data['qty']
+                            dashboard.clear_screen()
+                            print(f"{dashboard.BOLD}{dashboard.YELLOW}══💰 RAPORT CASHFLOW BVB - ANUL {an_str} ═══════════════════════════════════════════{dashboard.RESET}")
+                            if not portfolio_mgr.manual_assets:
+                                print(f"\n{dashboard.RED} Nu ai active pe BVB adăugate în portofoliu!{dashboard.RESET}")
+                                input("\nApasă ENTER pentru înapoi...")
+                                in_sub_loop = False
+                                continue
+                            
+                            print(f"  {dashboard.BOLD}{dashboard.WHITE}{'TICKER':<10}{'TIP':<12}{'HIST. QTY':<12}{'CASH/UNIT':<15}{'TOTAL ÎNCASAT'}{dashboard.RESET}")
+                            print(f"  {'-'*70}")
+                            
+                            total_an_ron = 0.0
+                            monthly_distribution = {m: 0.0 for m in ["Ianuarie", "Februarie", "Martie", "Aprilie", "Mai", "Iunie", "Iulie", "August", "Septembrie", "Octombrie", "Noiembrie", "Decembrie"]}
+                            
+                            for t, info in portfolio_mgr.manual_assets.items():
+                                is_bond = info.get('is_bond', False)
+                                tip_text = "Obligațiune" if is_bond else "Acțiune"
                                 
-                                tip_prompt = "cupon per obligațiune" if info.get('is_bond', False) else "dividend net per acțiune (DPS)"
-                                input_cash = input(f" Valoare {tip_prompt} în {an_str} [ENTER pentru neschimbat: {current_matrix_data['cash']}]: ").strip()
-                                new_cash = float(input_cash) if input_cash else current_matrix_data['cash']
+                                matrix = info.get('history_matrix', {})
+                                year_data = matrix.get(an_str, {})
                                 
-                                portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
-                                    "qty": new_qty,
-                                    "cash": new_cash
-                                }
-                                portfolio_mgr.save_portfolio()
-                                print(f"\n{dashboard.GREEN} Succes! Datele istorice pentru {edit_t} ({an_str}) au fost actualizate!{dashboard.RESET}")
-                                time.sleep(1.5)
-                            except ValueError:
-                                print(f"\n{dashboard.RED} Eroare: Introdu doar valori numerice valide!{dashboard.RESET}")
-                                time.sleep(1.5)
-                        elif edit_t:
-                            print(f"\n{dashboard.RED} Ticker-ul nu există!{dashboard.RESET}")
-                            time.sleep(1.5)
+                                hist_qty = year_data.get('qty', info['qty'])
+                                cash_per_unit = year_data.get('cash', info.get('dps', 0.0) if an_str == "2026" else 0.0)
+                                
+                                total_asset_cash = hist_qty * cash_per_unit
+                                total_an_ron += total_asset_cash
+                                
+                                # Distribuim banii pe luni în mod inteligent
+                                active_months = get_default_months(t, is_bond)
+                                cash_per_month = total_asset_cash / len(active_months) if active_months else 0.0
+                                for m in active_months:
+                                    monthly_distribution[m] += cash_per_month
+                                
+                                print(f"  {dashboard.BOLD}{t:<10}{dashboard.RESET}{tip_text:<12}{hist_qty:<12,g}{cash_per_unit:<15,.4f}{total_asset_cash:,.2f} RON")
+                            
+                            print(f"  {'-'*70}")
+                            print(f"  {dashboard.BOLD}TOTAL CASHFLOW ÎNCASAT/ESTIMAT ÎN {an_str}: {dashboard.GREEN}{total_an_ron:,.2f} RON{dashboard.RESET}")
+                            
+                            print(f"\n {dashboard.BOLD}{dashboard.YELLOW}[ OPȚIUNI ADIȚIONALE ]{dashboard.RESET}")
+                            print(f"  {dashboard.CYAN}v{dashboard.RESET} = Vizualizează Calendarul Lunar de Cashflow 📅")
+                            print(f"  {dashboard.CYAN}e{dashboard.RESET} = Editează valorile acestui an")
+                            print(f"  {dashboard.CYAN}b{dashboard.RESET} = Înapoi la selectare an")
+                            
+                            sub_cmd = input("\n Alege o acțiune: ").strip().lower()
+                            
+                            if sub_cmd == 'v':
+                                dashboard.clear_screen()
+                                print(f"{dashboard.BOLD}{dashboard.YELLOW}══📅 CALENDAR CASHFLOW LUNAR ESTIMAT - ANUL {an_str} ════════════════════════════{dashboard.RESET}")
+                                max_val = max(monthly_distribution.values()) if max(monthly_distribution.values()) > 0 else 1.0
+                                
+                                for month, amount in monthly_distribution.items():
+                                    if amount > 0:
+                                        bars_count = int((amount / max_val) * 15)
+                                        bars_count = 1 if bars_count == 0 else bars_count
+                                        bar_str = "█" * bars_count
+                                        print(f"  {month:<12} | {dashboard.GREEN}{bar_str:<15}{dashboard.RESET} | {dashboard.BOLD}{amount:>8,.2f} RON{dashboard.RESET}")
+                                    else:
+                                        print(f"  {month:<12} | {' ' * 15} | {dashboard.WHITE}0.00 RON{dashboard.RESET}")
+                                print(f"  {'-'*65}")
+                                print(f"  {dashboard.BOLD}Total Anual Dinamic: {dashboard.GREEN}{total_an_ron:,.2f} RON{dashboard.RESET}")
+                                input(f"\nApasă ENTER pentru a te întoarce la raportul {an_str}...")
+                                
+                            elif sub_cmd == 'e':
+                                edit_t = input("\n Introdu ticker-ul pe care vrei să îl modifici: ").strip().upper()
+                                if edit_t in portfolio_mgr.manual_assets:
+                                    info = portfolio_mgr.manual_assets[edit_t]
+                                    if 'history_matrix' not in info:
+                                        portfolio_mgr.manual_assets[edit_t]['history_matrix'] = {}
+                                    if an_str not in portfolio_mgr.manual_assets[edit_t]['history_matrix']:
+                                        portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
+                                            "qty": info['qty'],
+                                            "cash": info.get('dps', 0.0)
+                                        }
+                                        
+                                    current_matrix_data = portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str]
+                                    
+                                    try:
+                                        input_qty = input(f" Cantitate deținută în {an_str} [ENTER pentru neschimbat: {current_matrix_data['qty']}]: ").strip()
+                                        new_qty = float(input_qty) if input_qty else current_matrix_data['qty']
+                                        
+                                        tip_prompt = "cupon per obligațiune" if info.get('is_bond', False) else "dividend net per acțiune (DPS)"
+                                        input_cash = input(f" Valoare {tip_prompt} în {an_str} [ENTER pentru neschimbat: {current_matrix_data['cash']}]: ").strip()
+                                        new_cash = float(input_cash) if input_cash else current_matrix_data['cash']
+                                        
+                                        portfolio_mgr.manual_assets[edit_t]['history_matrix'][an_str] = {
+                                            "qty": new_qty,
+                                            "cash": new_cash
+                                        }
+                                        portfolio_mgr.save_portfolio()
+                                        print(f"\n{dashboard.GREEN} Succes! Datele istorice pentru {edit_t} ({an_str}) au fost actualizate!{dashboard.RESET}")
+                                        time.sleep(1.5)
+                                    except ValueError:
+                                        print(f"\n{dashboard.RED} Eroare: Introdu doar valori numerice valide!{dashboard.RESET}")
+                                        time.sleep(1.5)
+                                else:
+                                    print(f"\n{dashboard.RED} Ticker-ul nu există!{dashboard.RESET}")
+                                    time.sleep(1.5)
+                            elif sub_cmd == 'b':
+                                continue
 
                     elif p_opt == '6':
                         dashboard.clear_screen()
@@ -336,7 +393,6 @@ def main():
                     elif p_opt == '7' or p_opt == '':
                         in_p_menu = False
                 
-                # Ieșim din meniul P -> Activăm din nou redesenarea automată a ecranului principal
                 is_in_sub_menu = False
                 with data_lock:
                     portfolio_data = portfolio_mgr.get_portfolio_data()
