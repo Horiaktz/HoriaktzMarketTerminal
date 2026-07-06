@@ -2,6 +2,7 @@ import json
 import os
 import getpass
 import requests
+from datetime import datetime
 from modules.prices import PricesManager
 from modules.utils import CurrencyConverter
 
@@ -13,9 +14,10 @@ class PortfolioManager:
         self.auto_assets = {}
         self.manual_assets = {}
         self.total_deposited_ron = 10630.0
+        self.daily_history = {} # Structura: {"YYYY-MM-DD": valoare_ron}
         
         # Parola secretă pentru PC-uri străine
-        self.SECRET_PASSWORD = "Horiaktz"
+        self.SECRET_PASSWORD = "Horia2026"
         
         self.load_portfolio()
 
@@ -27,6 +29,7 @@ class PortfolioManager:
                     self.auto_assets = data.get("auto_assets", {})
                     self.manual_assets = data.get("manual_assets", {})
                     self.total_deposited_ron = data.get("total_deposited_ron", 10630.0)
+                    self.daily_history = data.get("daily_history", {})
             except Exception:
                 self._set_default_portfolio()
         else:
@@ -36,6 +39,7 @@ class PortfolioManager:
         self.auto_assets = {}
         self.manual_assets = {}
         self.total_deposited_ron = 10630.0
+        self.daily_history = {}
         self.save_portfolio()
 
     def save_portfolio(self):
@@ -44,20 +48,19 @@ class PortfolioManager:
                 json.dump({
                     "auto_assets": self.auto_assets,
                     "manual_assets": self.manual_assets,
-                    "total_deposited_ron": self.total_deposited_ron
+                    "total_deposited_ron": self.total_deposited_ron,
+                    "daily_history": self.daily_history
                 }, f, indent=4)
         except Exception:
             pass
 
     def import_horia_vault(self):
-        """Descarcă portofoliul tău original de pe GitHub doar dacă parola e corectă"""
         print("\n\033[33m[🔒 SECURITATE] Se accesează Seiful Privat al lui Horia.\033[0m")
         incercare = getpass.getpass(" Introdu parola master de deblocare: ")
         
         if incercare == self.SECRET_PASSWORD:
             try:
                 print("[*] Se descarcă datele securizate...")
-                # Tragem fișierul config.json direct din repository-ul tău public
                 url = "https://raw.githubusercontent.com/Horiaktz/HoriaktzMarketTerminal/main/config.json"
                 response = requests.get(url, timeout=10)
                 
@@ -66,6 +69,7 @@ class PortfolioManager:
                     self.auto_assets = data.get("auto_assets", {})
                     self.manual_assets = data.get("manual_assets", {})
                     self.total_deposited_ron = data.get("total_deposited_ron", 10630.0)
+                    self.daily_history = data.get("daily_history", {})
                     
                     self.save_portfolio()
                     print("\033[32m[🔓 ACCESS GRANTED] Portofoliul tău master a fost importat cu succes!\033[0m")
@@ -79,6 +83,32 @@ class PortfolioManager:
         else:
             print("\033[31m[❌ ACCESS DENIED] Parolă incorectă! Seiful rămâne închis.\033[0m")
             return False
+
+    def check_and_record_daily_value(self):
+        """Rulează în fundal. Înregistrează valoarea portofoliului o singură dată pe zi la ora 18:00"""
+        acum = datetime.now()
+        today_str = acum.strftime("%Y-%m-%d")
+        
+        # Verificăm dacă este ora 18 (sau mai târziu) și dacă nu am salvat deja valoarea pe ziua de azi
+        if acum.hour >= 18 and today_str not in self.daily_history:
+            total_current_value_ron = 0.0
+            rates = self.converter.get_rates()
+            usd_ron = rates.get('USD_RON', 4.57)
+            eur_ron = rates.get('EUR_RON', 5.23)
+            
+            # Calculăm valoarea XTB (Auto) în RON
+            for ticker, info in self.auto_assets.items():
+                live_price_eur = self.prices_manager.get_live_price(ticker)
+                if live_price_eur is None: live_price_eur = info['avg_price']
+                total_current_value_ron += (info['qty'] * live_price_eur) * eur_ron
+                
+            # Calculăm valoarea BVB (Manual) în RON
+            for ticker, info in self.manual_assets.items():
+                total_current_value_ron += info['qty'] * info['current_price']
+                
+            if total_current_value_ron > 0:
+                self.daily_history[today_str] = round(total_current_value_ron, 2)
+                self.save_portfolio()
 
     def add_or_update_asset(self, ticker, qty, avg_price, is_manual=False, current_price=0.0, currency="USD", is_bond=False):
         if is_manual:

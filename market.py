@@ -36,6 +36,9 @@ def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converte
                 portfolio_data = p_data
                 currency_rates = rates
             
+            # APELĂM SALVAREA AUTOMATĂ ZILNICĂ LA ORA 18:00
+            portfolio_mgr.check_and_record_daily_value()
+            
             if not is_in_sub_menu:
                 trigger_render(dashboard)
             
@@ -133,15 +136,16 @@ def main():
                     dashboard.clear_screen()
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}══💼 MENIU MANAGE PORTFOLIO ════════════════════════════════════════════════════{dashboard.RESET}")
                     print(f" 1. {dashboard.CYAN}Vizualizează Alocarea Activelor{dashboard.RESET} (Grafic ASCII pe ponderi)")
-                    print(f" 2. {dashboard.CYAN}Adaugă Activ Nou{dashboard.RESET} (XTB sau Tradeville/BVB)")
-                    print(f" 3. {dashboard.CYAN}Modifică / Actualizează Complet un Activ{dashboard.RESET}")
-                    print(f" 4. {dashboard.CYAN}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
-                    print(f" 5. {dashboard.MAGENTA}Raport Istoric Dividende & Cupoane BVB{dashboard.RESET} 📅 💰")
-                    print(f" 6. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
-                    print(f" 7. {dashboard.YELLOW}Importă Portofoliul de Acasă (Necesită Parolă) 🔐{dashboard.RESET}")
-                    print(f" 8. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
+                    print(f" 2. {dashboard.MAGENTA}Grafic Evoluție Zilnică Portofoliu (Real Time) 📈{dashboard.RESET}")
+                    print(f" 3. {dashboard.CYAN}Adaugă Activ Nou{dashboard.RESET} (XTB sau Tradeville/BVB)")
+                    print(f" 4. {dashboard.CYAN}Modifică / Actualizează Complet un Activ{dashboard.RESET}")
+                    print(f" 5. {dashboard.CYAN}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
+                    print(f" 6. {dashboard.MAGENTA}Raport Istoric Dividende & Cupoane BVB{dashboard.RESET} 📅 💰")
+                    print(f" 7. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
+                    print(f" 8. {dashboard.YELLOW}Importă Portofoliul de Acasă (Necesită Parolă) 🔐{dashboard.RESET}")
+                    print(f" 9. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}════════════════════════════════════════════════════════════════════════════════{dashboard.RESET}")
-                    sys.stdout.write(f"\n Selectează o opțiune (1-8): ")
+                    sys.stdout.write(f"\n Selectează o opțiune (1-9): ")
                     sys.stdout.flush()
                     
                     p_opt = input().strip()
@@ -154,6 +158,25 @@ def main():
                         print(f"\n{dashboard.CYAN}Apasă ENTER pentru a reveni la meniu...{dashboard.RESET}")
                         input()
                     elif p_opt == '2':
+                        dashboard.clear_screen()
+                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══📈 GRAFIC EVOLUȚIE ISTORICĂ ZILNICĂ ═════════════════════════════════════════{dashboard.RESET}")
+                        
+                        history_data = portfolio_mgr.daily_history
+                        if not history_data:
+                            print(f"\n {dashboard.YELLOW}[!] Nu există suficiente date istorice zilnice încă.{dashboard.RESET}")
+                            print(" Terminalul va înregistra automat prima valoare azi la ora 18:00.")
+                        else:
+                            max_val = max(history_data.values()) if history_data.values() else 1.0
+                            print("\n  Dată         | Istoric Evoluție Valorică (RON)")
+                            print(f"  {'-'*60}")
+                            for date_str in sorted(history_data.keys()):
+                                val = history_data[date_str]
+                                bars = int((val / max_val) * 30)
+                                bars = 1 if bars == 0 else bars
+                                print(f"  {date_str} | {dashboard.GREEN}{'█' * bars:<30}{dashboard.RESET} | {dashboard.BOLD}{val:,.2f} RON{dashboard.RESET}")
+                        print(f"\n{dashboard.CYAN}Apasă ENTER pentru a reveni la meniu...{dashboard.RESET}")
+                        input()
+                    elif p_opt == '3':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══➕ ADĂUGARE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")
                         ticker = input(" Introdu Ticker (ex: SNP, TLV, BNET, VWCE.DE): ").strip().upper()
@@ -185,7 +208,7 @@ def main():
                             print(f"\n{dashboard.RED} Eroare: Date numerice invalide!{dashboard.RESET}")
                         time.sleep(2)
                         
-                    elif p_opt == '3':
+                    elif p_opt == '4':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══✏️ MODIFICARE ACTIV ══════════════════════════════════════════════════════════{dashboard.RESET}")
                         ticker = input(" Introdu ticker-ul pe care vrei să îl modifici: ").strip().upper()
@@ -228,7 +251,7 @@ def main():
                             print(f"\n{dashboard.RED} Eroare: Valori numerice invalide!{dashboard.RESET}")
                         time.sleep(2)
                         
-                    elif p_opt == '4':
+                    elif p_opt == '5':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══⚡ ACTUALIZARE RAPIDĂ PREȚURI BVB ════════════════════════════════════════════{dashboard.RESET}")
                         if not portfolio_mgr.manual_assets:
@@ -258,7 +281,7 @@ def main():
                                 print(f"\n{dashboard.RED} Ticker-ul introdus nu este un active manual de pe BVB!{dashboard.RESET}")
                         time.sleep(2)
 
-                    elif p_opt == '5':
+                    elif p_opt == '6':
                         in_sub_loop = True
                         while in_sub_loop:
                             dashboard.clear_screen()
@@ -373,7 +396,7 @@ def main():
                             elif sub_cmd == 'b':
                                 continue
 
-                    elif p_opt == '6':
+                    elif p_opt == '7':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══❌ ȘTERGERE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")
                         ticker = input(" Introdu ticker-ul pe care vrei să îl ștergi definitiv: ").strip().upper()
@@ -388,8 +411,7 @@ def main():
                                 print("\n Operațiune anulată.")
                         time.sleep(2)
                         
-                    elif p_opt == '7':
-                        # --- IMPORT SECURIZAT PRIN PAROLĂ VIA VAULT ---
+                    elif p_opt == '8':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══🔐 DEBLOCARE ȘI IMPORT PORTOFOLIU MASTER ════════════════════════════════════{dashboard.RESET}")
                         if portfolio_mgr.import_horia_vault():
@@ -397,7 +419,7 @@ def main():
                                 portfolio_data = portfolio_mgr.get_portfolio_data()
                         time.sleep(2)
                         
-                    elif p_opt == '8' or p_opt == '':
+                    elif p_opt == '9' or p_opt == '':
                         in_p_menu = False
                 
                 is_in_sub_menu = False

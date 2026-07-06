@@ -45,5 +45,9 @@
             "currency": "RON",
             "is_bond": false
         }
+    },
+    "total_deposited_ron": 10630.0,
+    "daily_history": {
+        "2026-07-06": 11697.65
     }
 }
