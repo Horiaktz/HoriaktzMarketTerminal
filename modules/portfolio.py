@@ -1,7 +1,7 @@
 import json
 import os
 import getpass
-import base64
+import requests
 from modules.prices import PricesManager
 from modules.utils import CurrencyConverter
 
@@ -15,24 +15,11 @@ class PortfolioManager:
         self.total_deposited_ron = 10630.0
         
         # Parola secretă pentru PC-uri străine
-        self.SECRET_PASSWORD = "Horia2026"
-        
-        # Datele tale oficiale criptate sub formă de text securizat (nu se văd la o căutare simplă în fișier)
-        # Conține structura ta de bază (SNP, TLV, BNET27A, VWCE etc.)
-        self._ENCRYPTED_VAULT = (
-            "eyJhdXRvX2Fzc2V0cyI6IHt9LCAibWFudWFsX2Fzc2V0cyI6IHsiU05QIjoge3Jx"
-            "dHkiOiAxMDAwLCAiYXZnX3ByaWNlIjogMC42NSwgImN1cnJlbnRfcHJpY2UiOiAw"
-            "LjY1LCAiY3VycmVuY3kiOiAiUk9OIiwgImRpcyI6IDAuMDQ1fSwgIkJORVQyN0Ei"
-            "OiB7InF0eSI6IDEwLCAiYXZnX3ByaWNlIjogMTAwLCAiY3VycmVuY3lfcHJpY2Ui"
-            "OiAxMDAsICJjdXJyZW5jeSI6ICJST04iLCAiaXNfYm9uZCI6IHRydWV9fSwgInRv"
-            "dGFsX2RlcG9zaXRlZF9yb24iOiAxMDYzMH0="
-        )
+        self.SECRET_PASSWORD = "Horiaktz"
         
         self.load_portfolio()
 
     def load_portfolio(self):
-        """Încarcă datele locale. Dacă fișierul local config.json este gol sau lipsește (pe alt PC), 
-        pornește curat, de la zero, fără să ceară nicio parolă."""
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, "r") as f:
@@ -63,27 +50,31 @@ class PortfolioManager:
             pass
 
     def import_horia_vault(self):
-        """Descarcă și injectează portofoliul tău securizat pe calculatoare străine doar pe bază de parolă"""
+        """Descarcă portofoliul tău original de pe GitHub doar dacă parola e corectă"""
         print("\n\033[33m[🔒 SECURITATE] Se accesează Seiful Privat al lui Horia.\033[0m")
         incercare = getpass.getpass(" Introdu parola master de deblocare: ")
         
         if incercare == self.SECRET_PASSWORD:
             try:
-                # Decriptăm baza de date integrată și o încărcăm în memorie
-                decoded_bytes = base64.b64decode(self._ENCRYPTED_VAULT)
-                decoded_str = decoded_bytes.decode("utf-8")
-                data = json.loads(decoded_str)
+                print("[*] Se descarcă datele securizate...")
+                # Tragem fișierul config.json direct din repository-ul tău public
+                url = "https://raw.githubusercontent.com/Horiaktz/HoriaktzMarketTerminal/main/config.json"
+                response = requests.get(url, timeout=10)
                 
-                self.auto_assets = data.get("auto_assets", {})
-                self.manual_assets = data.get("manual_assets", {})
-                self.total_deposited_ron = data.get("total_deposited_ron", 10630.0)
-                
-                # Salvăm local ca să rămână activ pe acel PC în sesiunea curentă
-                self.save_portfolio()
-                print("\033[32m[🔓 ACCESS GRANTED] Portofoliul tău a fost importat cu succes pe acest computer!\033[0m")
-                return True
+                if response.status_code == 200:
+                    data = response.json()
+                    self.auto_assets = data.get("auto_assets", {})
+                    self.manual_assets = data.get("manual_assets", {})
+                    self.total_deposited_ron = data.get("total_deposited_ron", 10630.0)
+                    
+                    self.save_portfolio()
+                    print("\033[32m[🔓 ACCESS GRANTED] Portofoliul tău master a fost importat cu succes!\033[0m")
+                    return True
+                else:
+                    print("\033[31m[❌] Nu s-a putut descărca seiful de pe GitHub (Eroare Server).\033[0m")
+                    return False
             except Exception as e:
-                print(f"\033[31m[❌] Eroare la decriptarea datelor: {e}\033[0m")
+                print(f"\033[31m[❌] Eroare la procesarea datelor: {e}\033[0m")
                 return False
         else:
             print("\033[31m[❌ ACCESS DENIED] Parolă incorectă! Seiful rămâne închis.\033[0m")
