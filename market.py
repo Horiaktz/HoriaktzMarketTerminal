@@ -61,15 +61,12 @@ def trigger_render(dashboard):
             sys.stdout.flush()
 
 def get_default_months(ticker, is_bond):
-    """Returnează lunile în care încasezi bani în mod tradițional bazat pe ticker"""
     t = ticker.upper()
     if is_bond:
-        # Obligațiunile de tip BNET plătesc de regulă cupoane trimestriale sau semestriale
         if "BNET" in t:
-            return ["Martie", "Iunie", "Septembrie", "Decembrie"]
+            return ["Ianuarie", "Aprilie", "Iulie", "Octombrie"]
         return ["Iunie", "Decembrie"]
     else:
-        # Acțiunile mari de pe BVB au distribuit istoric dividendele în lunile de vară
         if "SNP" in t:
             return ["Iunie"]
         if "TLV" in t:
@@ -141,9 +138,10 @@ def main():
                     print(f" 4. {dashboard.CYAN}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
                     print(f" 5. {dashboard.MAGENTA}Raport Istoric Dividende & Cupoane BVB{dashboard.RESET} 📅 💰")
                     print(f" 6. {dashboard.RED}Șterge un Activ{dashboard.RESET}")
-                    print(f" 7. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
+                    print(f" 7. {dashboard.YELLOW}Importă Portofoliul de Acasă (Necesită Parolă) 🔐{dashboard.RESET}")
+                    print(f" 8. {dashboard.GREEN}Înapoi la Dashboard{dashboard.RESET}")
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}════════════════════════════════════════════════════════════════════════════════{dashboard.RESET}")
-                    sys.stdout.write(f"\n Selectează o opțiune (1-7): ")
+                    sys.stdout.write(f"\n Selectează o opțiune (1-8): ")
                     sys.stdout.flush()
                     
                     p_opt = input().strip()
@@ -182,7 +180,7 @@ def main():
                                 if not currency: currency = "EUR"
                                 
                             portfolio_mgr.add_or_update_asset(ticker, qty, avg_price, is_manual, current_price, currency, is_bond)
-                            print(f"\n{dashboard.GREEN} Activul {ticker} a fost adăugat cu succes și salvat în config.json!{dashboard.RESET}")
+                            print(f"\n{dashboard.GREEN} Activul {ticker} a fost adăugat cu succes!{dashboard.RESET}")
                         except ValueError:
                             print(f"\n{dashboard.RED} Eroare: Date numerice invalide!{dashboard.RESET}")
                         time.sleep(2)
@@ -225,7 +223,7 @@ def main():
                                 ticker, qty, avg_price, is_manual, current_price, 
                                 asset_info.get('currency', 'USD'), asset_info.get('is_bond', False)
                             )
-                            print(f"\n{dashboard.GREEN} Activul {ticker} a fost actualizat cu succes în config.json!{dashboard.RESET}")
+                            print(f"\n{dashboard.GREEN} Activul {ticker} a fost actualizat cu succes!{dashboard.RESET}")
                         except ValueError:
                             print(f"\n{dashboard.RED} Eroare: Valori numerice invalide!{dashboard.RESET}")
                         time.sleep(2)
@@ -303,7 +301,6 @@ def main():
                                 total_asset_cash = hist_qty * cash_per_unit
                                 total_an_ron += total_asset_cash
                                 
-                                # Distribuim banii pe luni în mod inteligent
                                 active_months = get_default_months(t, is_bond)
                                 cash_per_month = total_asset_cash / len(active_months) if active_months else 0.0
                                 for m in active_months:
@@ -384,13 +381,23 @@ def main():
                             confirma = input(f" Sigur vrei să ștergi {ticker}? (y/n): ").strip().lower()
                             if confirma == 'y':
                                 if portfolio_mgr.remove_asset(ticker):
-                                    print(f"\n{dashboard.GREEN} Activul {ticker} a fost șters definitiv din config.json!{dashboard.RESET}")
+                                    print(f"\n{dashboard.GREEN} Activul {ticker} a fost șters definitiv!{dashboard.RESET}")
                                 else:
                                     print(f"\n{dashboard.RED} Activul {ticker} nu a fost găsit!{dashboard.RESET}")
                             else:
                                 print("\n Operațiune anulată.")
                         time.sleep(2)
-                    elif p_opt == '7' or p_opt == '':
+                        
+                    elif p_opt == '7':
+                        # --- IMPORT SECURIZAT PRIN PAROLĂ VIA VAULT ---
+                        dashboard.clear_screen()
+                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══🔐 DEBLOCARE ȘI IMPORT PORTOFOLIU MASTER ════════════════════════════════════{dashboard.RESET}")
+                        if portfolio_mgr.import_horia_vault():
+                            with data_lock:
+                                portfolio_data = portfolio_mgr.get_portfolio_data()
+                        time.sleep(2)
+                        
+                    elif p_opt == '8' or p_opt == '':
                         in_p_menu = False
                 
                 is_in_sub_menu = False
