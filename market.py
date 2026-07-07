@@ -36,7 +36,6 @@ def data_fetcher_loop(indices_mgr, movers_mgr, news_mgr, portfolio_mgr, converte
                 portfolio_data = p_data
                 currency_rates = rates
             
-            # APELĂM SALVAREA AUTOMATĂ ZILNICĂ LA ORA 18:00
             portfolio_mgr.check_and_record_daily_value()
             
             if not is_in_sub_menu:
@@ -136,7 +135,7 @@ def main():
                     dashboard.clear_screen()
                     print(f"{dashboard.BOLD}{dashboard.YELLOW}══💼 MENIU MANAGE PORTFOLIO ════════════════════════════════════════════════════{dashboard.RESET}")
                     print(f" 1. {dashboard.CYAN}Vizualizează Alocarea Activelor{dashboard.RESET} (Grafic ASCII pe ponderi)")
-                    print(f" 2. {dashboard.MAGENTA}Grafic Evoluție Zilnică Portofoliu (Real Time) 📈{dashboard.RESET}")
+                    print(f" 2. {dashboard.MAGENTA}Grafic Evoluție Zilnică Portofoliu & Notițe Jurnal 📈{dashboard.RESET}")
                     print(f" 3. {dashboard.CYAN}Adaugă Activ Nou{dashboard.RESET} (XTB sau Tradeville/BVB)")
                     print(f" 4. {dashboard.CYAN}Modifică / Actualizează Complet un Activ{dashboard.RESET}")
                     print(f" 5. {dashboard.CYAN}Actualizează Rapid Prețuri BVB (Manual){dashboard.RESET}")
@@ -158,24 +157,57 @@ def main():
                         print(f"\n{dashboard.CYAN}Apasă ENTER pentru a reveni la meniu...{dashboard.RESET}")
                         input()
                     elif p_opt == '2':
-                        dashboard.clear_screen()
-                        print(f"{dashboard.BOLD}{dashboard.YELLOW}══📈 GRAFIC EVOLUȚIE ISTORICĂ ZILNICĂ ═════════════════════════════════════════{dashboard.RESET}")
-                        
-                        history_data = portfolio_mgr.daily_history
-                        if not history_data:
-                            print(f"\n {dashboard.YELLOW}[!] Nu există suficiente date istorice zilnice încă.{dashboard.RESET}")
-                            print(" Terminalul va înregistra automat prima valoare azi la ora 18:00.")
-                        else:
-                            max_val = max(history_data.values()) if history_data.values() else 1.0
-                            print("\n  Dată         | Istoric Evoluție Valorică (RON)")
-                            print(f"  {'-'*60}")
-                            for date_str in sorted(history_data.keys()):
-                                val = history_data[date_str]
-                                bars = int((val / max_val) * 30)
-                                bars = 1 if bars == 0 else bars
-                                print(f"  {date_str} | {dashboard.GREEN}{'█' * bars:<30}{dashboard.RESET} | {dashboard.BOLD}{val:,.2f} RON{dashboard.RESET}")
-                        print(f"\n{dashboard.CYAN}Apasă ENTER pentru a reveni la meniu...{dashboard.RESET}")
-                        input()
+                        in_graph_loop = True
+                        while in_graph_loop:
+                            dashboard.clear_screen()
+                            print(f"{dashboard.BOLD}{dashboard.YELLOW}══📈 JURNAL ȘI GRAFIC EVOLUȚIE ISTORICĂ ZILNICĂ ══════════════════════════════════{dashboard.RESET}")
+                            
+                            history_data = portfolio_mgr.daily_history
+                            if not history_data:
+                                print(f"\n {dashboard.YELLOW}[!] Nu există date istorice zilnice încă.{dashboard.RESET}")
+                                print(" Terminalul va înregistra prima valoare automat azi la ora 18:00.")
+                            else:
+                                # Extreagem valorile maxime pentru calculul barelor text
+                                vals = []
+                                for k, v in history_data.items():
+                                    vals.append(v["value"] if isinstance(v, dict) else v)
+                                max_val = max(vals) if vals else 1.0
+                                
+                                print(f"\n  {'DATĂ':<12} | {'EVOLUȚIE VALORICĂ (RON)':<30} | {'VALOARE':<13} | {'NOTIȚĂ JURNAL'}")
+                                print(f"  {'-'*100}")
+                                
+                                for date_str in sorted(history_data.keys()):
+                                    node = history_data[date_str]
+                                    if isinstance(node, dict):
+                                        val = node["value"]
+                                        comment = node["comment"]
+                                    else:
+                                        val = node
+                                        comment = ""
+                                        
+                                    bars = int((val / max_val) * 30)
+                                    bars = 1 if bars == 0 else bars
+                                    bar_str = '█' * bars
+                                    
+                                    comment_disp = f"{dashboard.YELLOW}{comment}{dashboard.RESET}" if comment else f"{dashboard.WHITE}-{dashboard.RESET}"
+                                    print(f"  {date_str:<12} | {dashboard.GREEN}{bar_str:<30}{dashboard.RESET} | {val:>10,.2f} RON | {comment_disp}")
+                                    
+                            print(f"\n {dashboard.BOLD}{dashboard.YELLOW}[ OPȚIUNI ]{dashboard.RESET} {dashboard.CYAN}c{dashboard.RESET} = Adaugă/Modifică Comentariu | {dashboard.CYAN}b{dashboard.RESET} = Înapoi la Meniu")
+                            sub_choice = input("\n Alege acțiunea: ").strip().lower()
+                            
+                            if sub_choice == 'c':
+                                target_date = input("\n Introdu data pentru notiță (format YYYY-MM-DD): ").strip()
+                                if target_date in history_data:
+                                    note = input(f" Introdu comentariul pentru {target_date} (ex: Depus 100 RON XTB): ").strip()
+                                    portfolio_mgr.add_history_comment(target_date, note)
+                                    print(f"\n{dashboard.GREEN} Notiță salvată cu succes în jurnal!{dashboard.RESET}")
+                                    time.sleep(1.5)
+                                else:
+                                    print(f"\n{dashboard.RED} Data introdusă nu există în istoric! (Așteaptă înregistrarea de la ora 18:00){dashboard.RESET}")
+                                    time.sleep(2)
+                            elif sub_choice == 'b' or sub_choice == '':
+                                in_graph_loop = False
+                                
                     elif p_opt == '3':
                         dashboard.clear_screen()
                         print(f"{dashboard.BOLD}{dashboard.YELLOW}══➕ ADĂUGARE ACTIV ════════════════════════════════════════════════════════════{dashboard.RESET}")

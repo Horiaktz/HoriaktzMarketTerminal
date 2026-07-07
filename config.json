@@ -20,34 +20,43 @@
         "BNET27A": {
             "qty": 50.0,
             "avg_price": 99.6384,
-            "current_price": 99.95,
+            "current_price": 99.9,
             "currency": "RON",
-            "is_bond": true
+            "is_bond": true,
+            "dps": 0.0,
+            "history_matrix": {}
         },
         "H2O": {
             "qty": 8.0,
             "avg_price": 163.3279,
-            "current_price": 216.0,
+            "current_price": 206.0,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 0.0,
+            "history_matrix": {}
         },
         "SNP": {
             "qty": 1152.0,
             "avg_price": 1.0199,
-            "current_price": 1.105,
+            "current_price": 1.135,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 0.0,
+            "history_matrix": {}
         },
         "TLV": {
             "qty": 35.0,
             "avg_price": 38.2919,
-            "current_price": 39.96,
+            "current_price": 39.82,
             "currency": "RON",
-            "is_bond": false
+            "is_bond": false,
+            "dps": 0.0,
+            "history_matrix": {}
         }
     },
     "total_deposited_ron": 10630.0,
     "daily_history": {
-        "2026-07-06": 11697.65
+        "2026-07-06": 11697.65,
+        "2026-07-07": 11604.27
     }
 }

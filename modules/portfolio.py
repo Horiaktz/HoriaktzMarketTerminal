@@ -14,7 +14,7 @@ class PortfolioManager:
         self.auto_assets = {}
         self.manual_assets = {}
         self.total_deposited_ron = 10630.0
-        self.daily_history = {} # Structura: {"YYYY-MM-DD": valoare_ron}
+        self.daily_history = {} # Structura noua: {"YYYY-MM-DD": {"value": 12000, "comment": "Depus 100 RON XTB"}}
         
         # Parola secretă pentru PC-uri străine
         self.SECRET_PASSWORD = "Horia2026"
@@ -89,26 +89,37 @@ class PortfolioManager:
         acum = datetime.now()
         today_str = acum.strftime("%Y-%m-%d")
         
-        # Verificăm dacă este ora 18 (sau mai târziu) și dacă nu am salvat deja valoarea pe ziua de azi
         if acum.hour >= 18 and today_str not in self.daily_history:
             total_current_value_ron = 0.0
             rates = self.converter.get_rates()
-            usd_ron = rates.get('USD_RON', 4.57)
             eur_ron = rates.get('EUR_RON', 5.23)
             
-            # Calculăm valoarea XTB (Auto) în RON
             for ticker, info in self.auto_assets.items():
                 live_price_eur = self.prices_manager.get_live_price(ticker)
                 if live_price_eur is None: live_price_eur = info['avg_price']
                 total_current_value_ron += (info['qty'] * live_price_eur) * eur_ron
                 
-            # Calculăm valoarea BVB (Manual) în RON
             for ticker, info in self.manual_assets.items():
                 total_current_value_ron += info['qty'] * info['current_price']
                 
             if total_current_value_ron > 0:
-                self.daily_history[today_str] = round(total_current_value_ron, 2)
+                self.daily_history[today_str] = {
+                    "value": round(total_current_value_ron, 2),
+                    "comment": ""
+                }
                 self.save_portfolio()
+
+    def add_history_comment(self, date_str, comment_text):
+        """Adaugă sau modifică un comentariu pentru o dată specifică din istoric"""
+        if date_str in self.daily_history:
+            # Dacă nodul vechi era doar un simplu număr (migrare de date vechi), îl convertim
+            if not isinstance(self.daily_history[date_str], dict):
+                self.daily_history[date_str] = {"value": self.daily_history[date_str], "comment": ""}
+                
+            self.daily_history[date_str]["comment"] = comment_text
+            self.save_portfolio()
+            return True
+        return False
 
     def add_or_update_asset(self, ticker, qty, avg_price, is_manual=False, current_price=0.0, currency="USD", is_bond=False):
         if is_manual:
